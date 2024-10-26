@@ -10,14 +10,4 @@ class Program
         Application.SetCompatibleTextRenderingDefault(false);
         Application.Run(new MainForm());
     }
-
-    static List<string> ListSubtitles(string videoPath)
-    {
-        return null;
-    }
-
-    static void EmbedSubtitle(string videoPath, string subtitleTrack)
-    {
-        
-    }
 }

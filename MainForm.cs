@@ -1,5 +1,8 @@
 using System;
+using System.Diagnostics;
 using System.Windows.Forms;
+using System.Text;
+using System.IO;
 
 
 public class MainForm : Form {
@@ -18,32 +21,29 @@ public class MainForm : Form {
     }
 
     private void InitializeComponets(){
-        // Criar um Panel
         Panel panel = new Panel();
         panel.Dock = DockStyle.Top;
         panel.Width = this.ClientSize.Width;
         panel.Height = 30;
         
-        // Criar o TextBox
         txtVideoPath = new TextBox();
         txtVideoPath.Dock = DockStyle.Left;
-        txtVideoPath.Width = (int)(panel.Width * 0.7); // 80% da largura do painel
-        txtVideoPath.Enabled = false;
+        txtVideoPath.Width = (int)(panel.Width * 0.7);
+        txtVideoPath.ReadOnly = true;
         
         
-        // Criar o Button
+        
         btnSelectFile = new Button();
         btnSelectFile.Text = "Escolha o arquivo";
         btnSelectFile.AutoSize = true;
         btnSelectFile.Dock = DockStyle.Right;
         btnSelectFile.Width = (int)(panel.Width * 0.2);
-        btnSelectFile.Click += SelectFile;
+        btnSelectFile.Click += new EventHandler(SelectFile);
         
-        // Adicionar os controles ao Panel
         panel.Controls.Add(txtVideoPath);
         panel.Controls.Add(btnSelectFile);
         
-        // Adicionar o Panel ao formulário
+
         this.Controls.Add(panel);
     
         ddSubtitles = new ComboBox();
@@ -63,6 +63,38 @@ public class MainForm : Form {
     }
 
     private void SelectFile(object sender, EventArgs e){
+        OpenFileDialog openFileDialog = new OpenFileDialog();
+        openFileDialog.Filter = "Video (*.mkv)|*.mkv";
 
+        if(openFileDialog.ShowDialog() == DialogResult.OK){
+            string filePath = openFileDialog.FileName;
+
+            txtVideoPath.Text = filePath;
+        }
+
+        if(txtVideoPath.Text != null) {
+            GetSubtitles(txtVideoPath.Text);
+        }
+    }
+
+    private string GetSubtitles(string filePath){
+        Process cmd = new Process();
+
+        Console.WriteLine("GetSubtitles");
+
+        cmd.StartInfo.FileName = "ffmpeg";
+        cmd.StartInfo.Arguments = $"-i \"{filePath}\"";
+        cmd.StartInfo.RedirectStandardError = true;
+        cmd.StartInfo.UseShellExecute = false;
+
+        cmd.Start();
+
+         
+        string output = cmd.StandardError.ReadToEnd();
+        cmd.WaitForExit();
+
+        MessageBox.Show(output);
+
+        return output;
     }
 }
