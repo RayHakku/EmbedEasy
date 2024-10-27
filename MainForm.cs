@@ -154,9 +154,16 @@ public class MainForm : Form {
                 cmd.Start();
                 cmd.BeginOutputReadLine();
                 cmd.BeginErrorReadLine();
-                cmd.WaitForExit();
     
-                Console.WriteLine(string.Join(" ", cmd.StartInfo.ArgumentList));
+                // Timeout de 10 minutos (600000 milissegundos)
+                bool exited = cmd.WaitForExit(600000);
+                if (!exited)
+                {
+                    // Forçar o encerramento do processo se ele ainda estiver em execução
+                    cmd.Kill();
+                    Console.WriteLine("Processo ffmpeg forçado a encerrar devido ao timeout.");
+                }
+    
             });
         }
         else
