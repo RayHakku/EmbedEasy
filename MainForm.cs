@@ -51,6 +51,7 @@ public class MainForm : Form {
         ddSubtitles = new ComboBox();
         this.Controls.Add(ddSubtitles);
         ddSubtitles.Width = (int)(this.ClientSize.Width * 0.8);
+        ddSubtitles.DisplayMember = "Title";
         ddSubtitles.Left = (this.ClientSize.Width - ddSubtitles.Width)/2;
         ddSubtitles.Top = panel.Height + 10;
         
@@ -58,7 +59,16 @@ public class MainForm : Form {
         btnStartProcess.Text = "Adicionar Legenda";
         btnStartProcess.AutoSize = true;
         btnStartProcess.Anchor = AnchorStyles.None;
-        btnStartProcess.Click += (sender, e) => EmbedySubtitle(ddSubtitles.SelectedValue);
+        btnStartProcess.Click += (sender, e) => {
+            if (ddSubtitles.SelectedItem is Subtitles subtitles)
+            {
+                EmbedySubtitle(subtitles);
+            }
+            else
+            {
+                Console.WriteLine("not subtitle");
+            }
+        };
         this.Controls.Add(btnStartProcess);
 
         btnStartProcess.Left = (this.ClientSize.Width - btnStartProcess.Width)/2;
@@ -82,8 +92,16 @@ public class MainForm : Form {
         }
     }
 
-    private void EmbedySubtitle(object sub){
-
+    private void EmbedySubtitle(Subtitles sub){
+        if (sub != null)
+        {
+            Subtitles subt = sub as Subtitles;
+            
+            MessageBox.Show($"{subt.Title}");
+        } else
+        {
+            MessageBox.Show("Null Sub");
+        }
     }
 
     private string GetSubtitles(string filePath){
@@ -148,10 +166,12 @@ public class MainForm : Form {
             }
         }
         
+        ddSubtitles.Items.Clear(); // Clear the items before adding new ones
+        
         foreach (var item in subtitles)
         {
             Console.WriteLine($"Id:{item.Id}, Title:{item.Title}");
-            ddSubtitles.Items.Add(item.Title);
+            ddSubtitles.Items.Add(new Subtitles{Id = item.Id, Title = item.Title});
         }
         
         return subtitles;
