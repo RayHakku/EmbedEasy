@@ -3,9 +3,11 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using System.Text;
 using System.IO;
-
+using System.Text.RegularExpressions;
 
 public class MainForm : Form {
+
+    
     private TextBox txtVideoPath;
     private Button btnSelectFile;
     private ComboBox ddSubtitles;
@@ -28,7 +30,7 @@ public class MainForm : Form {
         
         txtVideoPath = new TextBox();
         txtVideoPath.Dock = DockStyle.Left;
-        txtVideoPath.Width = (int)(panel.Width * 0.7);
+        txtVideoPath.Width = (int)(this.ClientSize.Width * 0.7);
         txtVideoPath.ReadOnly = true;
         
         
@@ -37,7 +39,7 @@ public class MainForm : Form {
         btnSelectFile.Text = "Escolha o arquivo";
         btnSelectFile.AutoSize = true;
         btnSelectFile.Dock = DockStyle.Right;
-        btnSelectFile.Width = (int)(panel.Width * 0.2);
+        btnSelectFile.Width = (int)(this.ClientSize.Width * 0.2);
         btnSelectFile.Click += new EventHandler(SelectFile);
         
         panel.Controls.Add(txtVideoPath);
@@ -56,6 +58,7 @@ public class MainForm : Form {
         btnStartProcess.Text = "Adicionar Legenda";
         btnStartProcess.AutoSize = true;
         btnStartProcess.Anchor = AnchorStyles.None;
+        btnStartProcess.Click += (sender, e) => EmbedySubtitle(ddSubtitles.SelectedValue);
         this.Controls.Add(btnStartProcess);
 
         btnStartProcess.Left = (this.ClientSize.Width - btnStartProcess.Width)/2;
@@ -72,9 +75,15 @@ public class MainForm : Form {
             txtVideoPath.Text = filePath;
         }
 
-        if(txtVideoPath.Text != null) {
-            GetSubtitles(txtVideoPath.Text);
+        if(!string.IsNullOrEmpty(txtVideoPath.Text)) {
+            // Function Add Subtitles List to ddSubittles.\
+            ListSubtitles(GetSubtitles(txtVideoPath.Text));
+            
         }
+    }
+
+    private void EmbedySubtitle(object sub){
+
     }
 
     private string GetSubtitles(string filePath){
@@ -83,6 +92,7 @@ public class MainForm : Form {
         Console.WriteLine("GetSubtitles");
 
         cmd.StartInfo.FileName = "ffmpeg";
+        cmd.StartInfo.CreateNoWindow = true;
         cmd.StartInfo.Arguments = $"-i \"{filePath}\"";
         cmd.StartInfo.RedirectStandardError = true;
         cmd.StartInfo.UseShellExecute = false;
@@ -93,8 +103,67 @@ public class MainForm : Form {
         string output = cmd.StandardError.ReadToEnd();
         cmd.WaitForExit();
 
-        MessageBox.Show(output);
-
+        
         return output;
+    }
+
+    private List<Subtitles> ListSubtitles(string output){
+        List<Subtitles> subtitles = new List<Subtitles>();
+        string[] videoInfo = output.Split('\n');
+
+        Console.WriteLine("ListSubtitles");
+
+        foreach (string legendas in videoInfo ) {
+            if(legendas.Contains("Subtitle"))
+            {
+                
+               // Console.WriteLine($"Primeiro IF:{legendas}");
+                Regex regexSub = new Regex(@"Stream #(\d+:\d+)(\(\w+\))?: Subtitle: (\w+)( \(\w+\))?");
+                if( regexSub.IsMatch(legendas) ) {
+                    Match match = regexSub.Match(legendas);
+                    if (match.Success)
+                    {
+                        //Console.WriteLine($"Segundo if:{legendas}");
+                        string subtitleID = RemoveBeforePunctuation(match.Groups[1].Value, ':');
+                        Subtitles subtitle = new Subtitles
+                        {
+                            Id = Convert.ToInt32(subtitleID)
+                        };
+                        subtitles.Add(subtitle);
+                    }
+                }
+            }
+            else if (legendas.Contains("title"))
+            {
+                Console.WriteLine($"Else if 1:{legendas}");
+                string[] parts = legendas.Split(new string[] { "title           : " }, StringSplitOptions.None);
+                if (parts.Length > 1)
+                {
+                    string title = parts[1].Trim();
+                    if (subtitles.Count > 0)
+                    {
+                        subtitles.Last().Title = title;
+                    }
+                }
+            }
+        }
+        
+        foreach (var item in subtitles)
+        {
+            Console.WriteLine($"Id:{item.Id}, Title:{item.Title}");
+            ddSubtitles.Items.Add(item.Title);
+        }
+        
+        return subtitles;
+    }
+
+    public static string RemoveBeforePunctuation(string input, char punctuation)
+    {
+        int index = input.IndexOf(punctuation);
+        if (index >= 0)
+        {
+            return input.Substring(index + 1).Trim();
+        }
+        return input;
     }
 }
