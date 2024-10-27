@@ -13,11 +13,13 @@ public class MainForm : Form {
     private ComboBox ddSubtitles;
     private Button btnStartProcess;
 
+    private ProgressBar progressBar;
+
     public MainForm(){
         this.Text = "Embedeasy";
-        this.Size = new System.Drawing.Size(450, 150);
-        this.MinimumSize = new System.Drawing.Size(450,150);
-        this.MaximumSize = new System.Drawing.Size (450,150);
+        this.Size = new System.Drawing.Size(450, 250);
+        this.MinimumSize = new System.Drawing.Size(450,250);
+        this.MaximumSize = new System.Drawing.Size (450,250);
 
         InitializeComponets();
     }
@@ -62,7 +64,7 @@ public class MainForm : Form {
         btnStartProcess.Click += (sender, e) => {
             if (ddSubtitles.SelectedItem is Subtitles subtitles)
             {
-                EmbedySubtitle(subtitles);
+                EmbedySubtitle(subtitles,txtVideoPath.Text);
             }
             else
             {
@@ -73,6 +75,12 @@ public class MainForm : Form {
 
         btnStartProcess.Left = (this.ClientSize.Width - btnStartProcess.Width)/2;
         btnStartProcess.Top = this.ClientSize.Height - btnStartProcess.Height - 1;
+
+        progressBar = new ProgressBar();
+        progressBar.Width = (int)(this.ClientSize.Width * 0.8);
+        progressBar.Left = (this.ClientSize.Width - progressBar.Width) / 2;
+        progressBar.Top = ddSubtitles.Top + ddSubtitles.Height + 10;
+        this.Controls.Add(progressBar);
     }
 
     private void SelectFile(object sender, EventArgs e){
@@ -92,16 +100,114 @@ public class MainForm : Form {
         }
     }
 
-    private void EmbedySubtitle(Subtitles sub){
+    private async void EmbedySubtitle(Subtitles sub, string filePath)
+    {
         if (sub != null)
         {
-            Subtitles subt = sub as Subtitles;
-            
-            MessageBox.Show($"{subt.Title}");
-        } else
+            MessageBox.Show($"{sub.Title}");
+    
+            await Task.Run(() =>
+            {
+                Process cmd = new Process();
+                Console.WriteLine("Embedding Start");
+    
+                cmd.StartInfo.FileName = "ffmpeg";
+                cmd.StartInfo.ArgumentList.Add("-i");
+                cmd.StartInfo.ArgumentList.Add(filePath);
+                cmd.StartInfo.ArgumentList.Add("-vf");
+    
+                Console.WriteLine(sub.Id);
+                // Escapar o caminho do arquivo para o filtro subtitles
+                string escapedFilePath = filePath.Replace(@"\", @"\\").Replace(":", @"\:");
+                cmd.StartInfo.ArgumentList.Add($"subtitles='{escapedFilePath}':si={sub.Id},eq=saturation=0.8");
+    
+                cmd.StartInfo.ArgumentList.Add("-c:v");
+                cmd.StartInfo.ArgumentList.Add("hevc_amf");
+                cmd.StartInfo.ArgumentList.Add("-quality");
+                cmd.StartInfo.ArgumentList.Add("balanced");
+                cmd.StartInfo.ArgumentList.Add("-c:a");
+                cmd.StartInfo.ArgumentList.Add("copy");
+                cmd.StartInfo.ArgumentList.Add(Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_Legendado.mp4"));
+                cmd.StartInfo.UseShellExecute = false;
+                cmd.StartInfo.CreateNoWindow = true;
+                cmd.StartInfo.RedirectStandardError = true;
+                cmd.StartInfo.RedirectStandardOutput = true;
+    
+                cmd.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        Console.WriteLine(e.Data);
+                        UpdateProgressBar(e.Data);
+                    }
+                };
+    
+                cmd.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        Console.WriteLine(e.Data);
+                        UpdateProgressBar(e.Data);
+                    }
+                };
+    
+                cmd.Start();
+                cmd.BeginOutputReadLine();
+                cmd.BeginErrorReadLine();
+                cmd.WaitForExit();
+    
+                Console.WriteLine(string.Join(" ", cmd.StartInfo.ArgumentList));
+            });
+        }
+        else
         {
             MessageBox.Show("Null Sub");
         }
+    }
+    
+    private void UpdateProgressBar(string data)
+    {
+        // Analisar a saída do ffmpeg para extrair informações de progresso
+        Regex regex = new Regex(@"time=(\d+:\d+:\d+.\d+)");
+        Match match = regex.Match(data);
+        if (match.Success)
+        {
+            string timeStr = match.Groups[1].Value;
+            TimeSpan currentTime = TimeSpan.Parse(timeStr);
+    
+            // Supondo que você tenha a duração total do vídeo
+            TimeSpan totalTime = GetVideoDuration(txtVideoPath.Text);
+    
+            if (totalTime.TotalSeconds > 0)
+            {
+                int progress = (int)((currentTime.TotalSeconds / totalTime.TotalSeconds) * 100);
+                progressBar.Invoke((MethodInvoker)(() => progressBar.Value = progress));
+            }
+        }
+    }
+    
+    private TimeSpan GetVideoDuration(string filePath)
+    {
+        Process cmd = new Process();
+        cmd.StartInfo.FileName = "ffmpeg";
+        cmd.StartInfo.Arguments = $"-i \"{filePath}\"";
+        cmd.StartInfo.RedirectStandardError = true;
+        cmd.StartInfo.UseShellExecute = false;
+        cmd.StartInfo.CreateNoWindow = true;
+    
+        cmd.Start();
+        string output = cmd.StandardError.ReadToEnd();
+        cmd.WaitForExit();
+    
+        Regex regex = new Regex(@"Duration: (\d+:\d+:\d+.\d+)");
+        Match match = regex.Match(output);
+        if (match.Success)
+        {
+            string durationStr = match.Groups[1].Value;
+            return TimeSpan.Parse(durationStr);
+        }
+    
+        return TimeSpan.Zero;
     }
 
     private string GetSubtitles(string filePath){
@@ -143,11 +249,19 @@ public class MainForm : Form {
                     {
                         //Console.WriteLine($"Segundo if:{legendas}");
                         string subtitleID = RemoveBeforePunctuation(match.Groups[1].Value, ':');
-                        Subtitles subtitle = new Subtitles
+                        if (int.TryParse(subtitleID, out int id))
                         {
-                            Id = Convert.ToInt32(subtitleID)
-                        };
-                        subtitles.Add(subtitle);
+                            Subtitles subtitle = new Subtitles
+                            {
+                                Id = id - 2
+                            };
+                            subtitles.Add(subtitle);
+                            Console.WriteLine($"Added subtitle with ID: {subtitle.Id}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Failed to parse subtitleID: {subtitleID}");
+                        }
                     }
                 }
             }
