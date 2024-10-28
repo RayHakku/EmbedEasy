@@ -1,0 +1,14 @@
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\Embedeasy.GeneratedMSBuildEditorConfig.editorconfig
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\Embedeasy.AssemblyInfoInputs.cache
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\Embedeasy.AssemblyInfo.cs
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\Embedeasy.csproj.CoreCompileInputs.cache
+D:\gitrepos\EmbedEasy\bin\Debug\net8.0-windows\Embedeasy.exe
+D:\gitrepos\EmbedEasy\bin\Debug\net8.0-windows\Embedeasy.deps.json
+D:\gitrepos\EmbedEasy\bin\Debug\net8.0-windows\Embedeasy.runtimeconfig.json
+D:\gitrepos\EmbedEasy\bin\Debug\net8.0-windows\Embedeasy.dll
+D:\gitrepos\EmbedEasy\bin\Debug\net8.0-windows\Embedeasy.pdb
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\Embedeasy.dll
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\refint\Embedeasy.dll
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\Embedeasy.pdb
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\Embedeasy.genruntimeconfig.cache
+D:\gitrepos\EmbedEasy\obj\Debug\net8.0-windows\ref\Embedeasy.dll
