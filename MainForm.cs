@@ -164,6 +164,8 @@ public class MainForm : Form {
                     Console.WriteLine("Processo ffmpeg forçado a encerrar devido ao timeout.");
                 }
     
+                // Set progress bar to 100% when process completes
+                progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100));
             });
         }
         else
