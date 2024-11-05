@@ -104,7 +104,6 @@ public class MainForm : Form {
     {
         if (sub != null)
         {
-            MessageBox.Show($"{sub.Title}");
     
             await Task.Run(() =>
             {
@@ -127,7 +126,7 @@ public class MainForm : Form {
                 cmd.StartInfo.ArgumentList.Add("balanced");
                 cmd.StartInfo.ArgumentList.Add("-c:a");
                 cmd.StartInfo.ArgumentList.Add("copy");
-                cmd.StartInfo.ArgumentList.Add(Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_Legendado.mp4"));
+                cmd.StartInfo.ArgumentList.Add(Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_Legendado.mkv"));
                 cmd.StartInfo.UseShellExecute = false;
                 cmd.StartInfo.CreateNoWindow = true;
                 cmd.StartInfo.RedirectStandardError = true;
@@ -164,12 +163,26 @@ public class MainForm : Form {
                     Console.WriteLine("Processo ffmpeg forçado a encerrar devido ao timeout.");
                 }
     
+                // Set progress bar to 100% when process completes
+                progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100));
+                
+                MessageBox.Show("Embedding Done");
+                // Reset all fields after completion
+                this.Invoke((MethodInvoker)(() => ResetFields()));
             });
         }
         else
         {
             MessageBox.Show("Null Sub");
         }
+    }
+
+    private void ResetFields()
+    {
+        txtVideoPath.Text = string.Empty;
+        ddSubtitles.Items.Clear();
+        ddSubtitles.Text = string.Empty;
+        progressBar.Value = 0;
     }
     
     private void UpdateProgressBar(string data)
