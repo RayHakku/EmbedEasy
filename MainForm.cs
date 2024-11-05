@@ -104,7 +104,6 @@ public class MainForm : Form {
     {
         if (sub != null)
         {
-            MessageBox.Show($"{sub.Title}");
     
             await Task.Run(() =>
             {
@@ -166,12 +165,24 @@ public class MainForm : Form {
     
                 // Set progress bar to 100% when process completes
                 progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100));
+                
+                MessageBox.Show("Embedding Done");
+                // Reset all fields after completion
+                this.Invoke((MethodInvoker)(() => ResetFields()));
             });
         }
         else
         {
             MessageBox.Show("Null Sub");
         }
+    }
+
+    private void ResetFields()
+    {
+        txtVideoPath.Text = string.Empty;
+        ddSubtitles.Items.Clear();
+        ddSubtitles.Text = string.Empty;
+        progressBar.Value = 0;
     }
     
     private void UpdateProgressBar(string data)
