@@ -126,7 +126,7 @@ public class MainForm : Form {
                 cmd.StartInfo.ArgumentList.Add("balanced");
                 cmd.StartInfo.ArgumentList.Add("-c:a");
                 cmd.StartInfo.ArgumentList.Add("copy");
-                cmd.StartInfo.ArgumentList.Add(Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_Legendado.mp4"));
+                cmd.StartInfo.ArgumentList.Add(Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_Legendado.mkv"));
                 cmd.StartInfo.UseShellExecute = false;
                 cmd.StartInfo.CreateNoWindow = true;
                 cmd.StartInfo.RedirectStandardError = true;
