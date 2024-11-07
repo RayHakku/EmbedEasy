@@ -34,9 +34,9 @@ public class MainForm : Form
             RowCount = 5,
             ColumnCount = 1,
             RowStyles = {
-                new RowStyle(SizeType.AutoSize),
-                new RowStyle(SizeType.AutoSize),
-                new RowStyle(SizeType.AutoSize),
+                new RowStyle(SizeType.Absolute, 30),
+                new RowStyle(SizeType.Absolute, 65),
+                new RowStyle(SizeType.Absolute, 35),
                 new RowStyle(SizeType.Percent, 100),
                 new RowStyle(SizeType.AutoSize)
             }
@@ -87,19 +87,24 @@ public class MainForm : Form
             Dock = DockStyle.Fill,
             ReadOnly = true,
             PlaceholderText = "Select a video file...",
+            Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top,
+            Height = 23  // Standard Windows Forms TextBox height
         };
-
+    
         _btnSelectFile = new Button
         {
             Text = "Browse...",
             Dock = DockStyle.Right,
             Width = 100,
-            Height = _txtVideoPath.Height
+            Height = 23,  // Match TextBox height
+            Padding = new Padding(0),
+            Margin = new Padding(3, 0, 0, 0),  // Add small margin between TextBox and Button
+            AutoSize = false  // Prevent auto-sizing
         };
         _btnSelectFile.Click += OnSelectFile;
-
-        panel.Controls.Add(_txtVideoPath);
+    
         panel.Controls.Add(_btnSelectFile);
+        panel.Controls.Add(_txtVideoPath);
         return panel;
     }
 
