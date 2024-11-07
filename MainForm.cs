@@ -3,73 +3,176 @@ using System.Text.RegularExpressions;
 
 public class MainForm : Form 
 {
+    private const int FORM_WIDTH = 500;
+    private const int FORM_HEIGHT = 300;
+    private const int PADDING = 15;
+
+    private TableLayoutPanel _mainLayout;
     private TextBox _txtVideoPath;
     private Button _btnSelectFile;
     private ComboBox _cboSubtitles;
     private Button _btnStartProcess;
     private ProgressBar _progressBar;
+    private Label _lblStatus;
 
     public MainForm()
     {
-        Text = "EmbedEasy";
-        Size = new System.Drawing.Size(450, 250);
-        MinimumSize = new System.Drawing.Size(450, 250);
-        MaximumSize = new System.Drawing.Size(450, 250);
+        Text = "EmbedEasy - Video Subtitle Embedder";
+        Size = new Size(FORM_WIDTH, FORM_HEIGHT);
+        MinimumSize = new Size(FORM_WIDTH, FORM_HEIGHT);
+        StartPosition = FormStartPosition.CenterScreen;
 
         InitializeComponents();
     }
 
     private void InitializeComponents()
     {
-        Panel panel = new Panel();
-        panel.Dock = DockStyle.Top;
-        panel.Width = ClientSize.Width;
-        panel.Height = 30;
-        
-        _txtVideoPath = new TextBox();
-        _txtVideoPath.Dock = DockStyle.Left;
-        _txtVideoPath.Width = (int)(ClientSize.Width * 0.7);
-        _txtVideoPath.ReadOnly = true;
-        
-        _btnSelectFile = new Button();
-        _btnSelectFile.Text = "Escolha o arquivo";
-        _btnSelectFile.AutoSize = true;
-        _btnSelectFile.Dock = DockStyle.Right;
-        _btnSelectFile.Width = (int)(ClientSize.Width * 0.2);
-        _btnSelectFile.Click += OnSelectFile;
-        
-        panel.Controls.Add(_txtVideoPath);
-        panel.Controls.Add(_btnSelectFile);
-        
-        Controls.Add(panel);
-    
-        _cboSubtitles = new ComboBox();
-        Controls.Add(_cboSubtitles);
-        _cboSubtitles.Width = (int)(ClientSize.Width * 0.8);
-        _cboSubtitles.DisplayMember = "Title";
-        _cboSubtitles.Left = (ClientSize.Width - _cboSubtitles.Width) / 2;
-        _cboSubtitles.Top = panel.Height + 10;
-        
-        _btnStartProcess = new Button();
-        _btnStartProcess.Text = "Adicionar Legenda";
-        _btnStartProcess.AutoSize = true;
-        _btnStartProcess.Anchor = AnchorStyles.None;
-        _btnStartProcess.Click += (sender, e) => {
-            if (_cboSubtitles.SelectedItem is Subtitles subtitles)
-            {
-                EmbedSubtitle(subtitles, _txtVideoPath.Text);
+        _mainLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(PADDING),
+            RowCount = 5,
+            ColumnCount = 1,
+            RowStyles = {
+                new RowStyle(SizeType.Absolute, 30),
+                new RowStyle(SizeType.Absolute, 65),
+                new RowStyle(SizeType.Absolute, 35),
+                new RowStyle(SizeType.Percent, 100),
+                new RowStyle(SizeType.AutoSize)
             }
         };
-        Controls.Add(_btnStartProcess);
 
-        _btnStartProcess.Left = (ClientSize.Width - _btnStartProcess.Width) / 2;
-        _btnStartProcess.Top = ClientSize.Height - _btnStartProcess.Height - 1;
+        // File selection panel
+        var fileSelectionPanel = CreateFileSelectionPanel();
+        _mainLayout.Controls.Add(fileSelectionPanel, 0, 0);
 
-        _progressBar = new ProgressBar();
-        _progressBar.Width = (int)(ClientSize.Width * 0.8);
-        _progressBar.Left = (ClientSize.Width - _progressBar.Width) / 2;
-        _progressBar.Top = _cboSubtitles.Top + _cboSubtitles.Height + 10;
-        Controls.Add(_progressBar);
+        // Subtitle selection
+        var subtitlePanel = CreateSubtitleSelectionPanel();
+        _mainLayout.Controls.Add(subtitlePanel, 0, 1);
+
+        // Progress section
+        var progressPanel = CreateProgressPanel();
+        _mainLayout.Controls.Add(progressPanel, 0, 2);
+
+        // Status label
+        _lblStatus = new Label
+        {
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            ForeColor = Color.Gray
+        };
+        _mainLayout.Controls.Add(_lblStatus, 0, 3);
+
+        // Action button
+        _btnStartProcess = new Button
+        {
+            Text = "Embed Subtitle",
+            Dock = DockStyle.Bottom,
+            Padding = new Padding(10, 5, 10, 5),
+            Height = 35,
+            Enabled = false
+        };
+        _btnStartProcess.Click += OnStartProcessClick;
+        _mainLayout.Controls.Add(_btnStartProcess, 0, 4);
+
+        Controls.Add(_mainLayout);
+    }
+
+    private Panel CreateFileSelectionPanel()
+    {
+        var panel = new Panel { Height = 35, Dock = DockStyle.Top };
+        
+        _txtVideoPath = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            ReadOnly = true,
+            PlaceholderText = "Select a video file...",
+            Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top,
+            Height = 23  // Standard Windows Forms TextBox height
+        };
+    
+        _btnSelectFile = new Button
+        {
+            Text = "Browse...",
+            Dock = DockStyle.Right,
+            Width = 100,
+            Height = 23,  // Match TextBox height
+            Padding = new Padding(0),
+            Margin = new Padding(3, 0, 0, 0),  // Add small margin between TextBox and Button
+            AutoSize = false  // Prevent auto-sizing
+        };
+        _btnSelectFile.Click += OnSelectFile;
+    
+        panel.Controls.Add(_btnSelectFile);
+        panel.Controls.Add(_txtVideoPath);
+        return panel;
+    }
+
+    private Panel CreateSubtitleSelectionPanel()
+    {
+        var panel = new Panel 
+        { 
+            Height = 65, // Increased height to accommodate both controls
+            Dock = DockStyle.Top,
+            Padding = new Padding(0, 10, 0, 0)
+        };
+    
+        var label = new Label
+        {
+            Text = "Available Subtitles:",
+            Dock = DockStyle.Top,
+            Height = 20, // Explicit height for the label
+            Margin = new Padding(0, 0, 0, 5) // Add margin between label and ComboBox
+        };
+    
+        _cboSubtitles = new ComboBox
+        {
+            Dock = DockStyle.Top, // Changed to Top instead of Bottom
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            DisplayMember = "Title",
+            Height = 25 // Explicit height for the ComboBox
+        };
+        _cboSubtitles.SelectedIndexChanged += OnSubtitleSelectionChanged;
+    
+        panel.Controls.Add(_cboSubtitles); // Add ComboBox first
+        panel.Controls.Add(label); // Then add label so it appears above
+        return panel;
+    }
+
+    private Panel CreateProgressPanel()
+    {
+        var panel = new Panel
+        {
+            Height = 35,
+            Dock = DockStyle.Top,
+            Padding = new Padding(0, 10, 0, 0)
+        };
+
+        _progressBar = new ProgressBar
+        {
+            Dock = DockStyle.Fill,
+            Style = ProgressBarStyle.Continuous
+        };
+
+        panel.Controls.Add(_progressBar);
+        return panel;
+    }
+
+    private void OnSubtitleSelectionChanged(object sender, EventArgs e)
+    {
+        _btnStartProcess.Enabled = _cboSubtitles.SelectedItem != null;
+    }
+
+    private void OnStartProcessClick(object sender, EventArgs e)
+    {
+        if (_cboSubtitles.SelectedItem is Subtitles subtitles)
+        {
+            _btnStartProcess.Enabled = false;
+            _btnSelectFile.Enabled = false;
+            _cboSubtitles.Enabled = false;
+            _lblStatus.Text = "Processing...";
+            EmbedSubtitle(subtitles, _txtVideoPath.Text);
+        }
     }
 
     private void OnSelectFile(object sender, EventArgs e)
