@@ -199,68 +199,94 @@ public class MainForm : Form
     
             await Task.Run(() =>
             {
-                Process cmd = new Process();
-                Console.WriteLine("Embedding Start");
-    
-                cmd.StartInfo.FileName = "ffmpeg";
-                cmd.StartInfo.ArgumentList.Add("-i");
-                cmd.StartInfo.ArgumentList.Add(filePath);
-                cmd.StartInfo.ArgumentList.Add("-vf");
-    
-                Console.WriteLine(subtitle.Id);
-                // Escapar o caminho do arquivo para o filtro subtitles
-                string escapedFilePath = filePath.Replace(@"\", @"\\").Replace(":", @"\:");
-                cmd.StartInfo.ArgumentList.Add($"subtitles='{escapedFilePath}':si={subtitle.Id},eq=saturation=0.8");
-    
-                cmd.StartInfo.ArgumentList.Add("-c:v");
-                cmd.StartInfo.ArgumentList.Add("hevc_amf");
-                cmd.StartInfo.ArgumentList.Add("-quality");
-                cmd.StartInfo.ArgumentList.Add("balanced");
-                cmd.StartInfo.ArgumentList.Add("-c:a");
-                cmd.StartInfo.ArgumentList.Add("copy");
-                cmd.StartInfo.ArgumentList.Add(Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_Legendado.mkv"));
-                cmd.StartInfo.UseShellExecute = false;
-                cmd.StartInfo.CreateNoWindow = true;
-                cmd.StartInfo.RedirectStandardError = true;
-                cmd.StartInfo.RedirectStandardOutput = true;
-    
-                cmd.OutputDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
+                try{    
+                    Process cmd = new Process();
+                    Console.WriteLine("Embedding Start");
+        
+                    cmd.StartInfo.FileName = "ffmpeg";
+                    cmd.StartInfo.ArgumentList.Add("-i");
+                    cmd.StartInfo.ArgumentList.Add(filePath);
+                    cmd.StartInfo.ArgumentList.Add("-vf");
+        
+                    Console.WriteLine(subtitle.Id);
+                    // Escapar o caminho do arquivo para o filtro subtitles
+                    string escapedFilePath = filePath.Replace(@"\", @"\\").Replace(":", @"\:");
+                    cmd.StartInfo.ArgumentList.Add($"subtitles='{escapedFilePath}':si={subtitle.Id}");
+        
+                    cmd.StartInfo.ArgumentList.Add("-c:v");
+                    cmd.StartInfo.ArgumentList.Add("libx265");
+                    cmd.StartInfo.ArgumentList.Add("-crf");
+                    cmd.StartInfo.ArgumentList.Add("20");
+                    cmd.StartInfo.ArgumentList.Add("-preset");
+                    cmd.StartInfo.ArgumentList.Add("medium");
+                    cmd.StartInfo.ArgumentList.Add("-tune");
+                    cmd.StartInfo.ArgumentList.Add("animation");
+                    cmd.StartInfo.ArgumentList.Add("-maxrate");
+                    cmd.StartInfo.ArgumentList.Add("4M");
+                    cmd.StartInfo.ArgumentList.Add("-bufsize");
+                    cmd.StartInfo.ArgumentList.Add("8M"); 
+                    cmd.StartInfo.ArgumentList.Add("-c:a");
+                    cmd.StartInfo.ArgumentList.Add("copy");
+                    cmd.StartInfo.ArgumentList.Add(Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath) + "_Legendado.mkv"));
+                    cmd.StartInfo.UseShellExecute = false;
+                    cmd.StartInfo.CreateNoWindow = true;
+                    cmd.StartInfo.RedirectStandardError = true;
+                    cmd.StartInfo.RedirectStandardOutput = true;
+        
+                    cmd.OutputDataReceived += (sender, e) =>
                     {
-                        Console.WriteLine(e.Data);
-                        UpdateProgressBar(e.Data);
-                    }
-                };
-    
-                cmd.ErrorDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            Console.WriteLine(e.Data);
+                            UpdateProgressBar(e.Data);
+                        }
+                    };
+        
+                    cmd.ErrorDataReceived += (sender, e) =>
                     {
-                        Console.WriteLine(e.Data);
-                        UpdateProgressBar(e.Data);
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            Console.WriteLine(e.Data);
+                            UpdateProgressBar(e.Data);
+                        }
+                    };
+        
+                    cmd.Start();
+                    cmd.BeginOutputReadLine();
+                    cmd.BeginErrorReadLine();
+        
+                    // Timeout de 10 minutos (600000 milissegundos)
+                    bool exited = cmd.WaitForExit(1200000);
+                    if (!exited)
+                    {
+                        // Forçar o encerramento do processo se ele ainda estiver em execução
+                        cmd.Kill();
+                        Console.WriteLine("Processo ffmpeg forçado a encerrar devido ao timeout.");
+
+                        this.Invoke((MethodInvoker)(() => 
+                        {
+                            MessageBox.Show("O processo excedeu o tempo limite e foi encerrado.", "Timeout", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            ResetControls();
+                        }));
+                        return;
                     }
-                };
-    
-                cmd.Start();
-                cmd.BeginOutputReadLine();
-                cmd.BeginErrorReadLine();
-    
-                // Timeout de 10 minutos (600000 milissegundos)
-                bool exited = cmd.WaitForExit(600000);
-                if (!exited)
-                {
-                    // Forçar o encerramento do processo se ele ainda estiver em execução
-                    cmd.Kill();
-                    Console.WriteLine("Processo ffmpeg forçado a encerrar devido ao timeout.");
+        
+                    this.Invoke((MethodInvoker)(() => 
+                    {
+                        _progressBar.Value = 100;
+                        MessageBox.Show("Embedding Done");
+                        ResetFields();
+                    }));
                 }
-    
-                // Set progress bar to 100% when process completes
-                _progressBar.Invoke((MethodInvoker)(() => _progressBar.Value = 100));
-                
-                MessageBox.Show("Embedding Done");
-                // Reset all fields after completion
-                this.Invoke((MethodInvoker)(() => ResetFields()));
+                catch (Exception ex)
+                {
+                    // Tratamento de erros
+                    this.Invoke((MethodInvoker)(() => 
+                    {
+                        MessageBox.Show($"Erro durante o processo: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        ResetControls();
+                    }));
+                }
             });
         }
         else
@@ -274,6 +300,16 @@ public class MainForm : Form
         _txtVideoPath.Text = string.Empty;
         _cboSubtitles.Items.Clear();
         _cboSubtitles.Text = string.Empty;
+        _progressBar.Value = 0;
+        ResetControls();
+    }
+
+    private void ResetControls()
+    {
+        _btnStartProcess.Enabled = _cboSubtitles.SelectedItem != null;
+        _btnSelectFile.Enabled = true;
+        _cboSubtitles.Enabled = true;
+        _lblStatus.Text = string.Empty;
         _progressBar.Value = 0;
     }
     
