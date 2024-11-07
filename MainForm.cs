@@ -1,108 +1,97 @@
-using System;
 using System.Diagnostics;
-using System.Windows.Forms;
-using System.Text;
-using System.IO;
 using System.Text.RegularExpressions;
 
-public class MainForm : Form {
+public class MainForm : Form 
+{
+    private TextBox _txtVideoPath;
+    private Button _btnSelectFile;
+    private ComboBox _cboSubtitles;
+    private Button _btnStartProcess;
+    private ProgressBar _progressBar;
 
-    
-    private TextBox txtVideoPath;
-    private Button btnSelectFile;
-    private ComboBox ddSubtitles;
-    private Button btnStartProcess;
+    public MainForm()
+    {
+        Text = "EmbedEasy";
+        Size = new System.Drawing.Size(450, 250);
+        MinimumSize = new System.Drawing.Size(450, 250);
+        MaximumSize = new System.Drawing.Size(450, 250);
 
-    private ProgressBar progressBar;
-
-    public MainForm(){
-        this.Text = "Embedeasy";
-        this.Size = new System.Drawing.Size(450, 250);
-        this.MinimumSize = new System.Drawing.Size(450,250);
-        this.MaximumSize = new System.Drawing.Size (450,250);
-
-        InitializeComponets();
+        InitializeComponents();
     }
 
-    private void InitializeComponets(){
+    private void InitializeComponents()
+    {
         Panel panel = new Panel();
         panel.Dock = DockStyle.Top;
-        panel.Width = this.ClientSize.Width;
+        panel.Width = ClientSize.Width;
         panel.Height = 30;
         
-        txtVideoPath = new TextBox();
-        txtVideoPath.Dock = DockStyle.Left;
-        txtVideoPath.Width = (int)(this.ClientSize.Width * 0.7);
-        txtVideoPath.ReadOnly = true;
+        _txtVideoPath = new TextBox();
+        _txtVideoPath.Dock = DockStyle.Left;
+        _txtVideoPath.Width = (int)(ClientSize.Width * 0.7);
+        _txtVideoPath.ReadOnly = true;
         
+        _btnSelectFile = new Button();
+        _btnSelectFile.Text = "Escolha o arquivo";
+        _btnSelectFile.AutoSize = true;
+        _btnSelectFile.Dock = DockStyle.Right;
+        _btnSelectFile.Width = (int)(ClientSize.Width * 0.2);
+        _btnSelectFile.Click += OnSelectFile;
         
+        panel.Controls.Add(_txtVideoPath);
+        panel.Controls.Add(_btnSelectFile);
         
-        btnSelectFile = new Button();
-        btnSelectFile.Text = "Escolha o arquivo";
-        btnSelectFile.AutoSize = true;
-        btnSelectFile.Dock = DockStyle.Right;
-        btnSelectFile.Width = (int)(this.ClientSize.Width * 0.2);
-        btnSelectFile.Click += new EventHandler(SelectFile);
-        
-        panel.Controls.Add(txtVideoPath);
-        panel.Controls.Add(btnSelectFile);
-        
-
-        this.Controls.Add(panel);
+        Controls.Add(panel);
     
-        ddSubtitles = new ComboBox();
-        this.Controls.Add(ddSubtitles);
-        ddSubtitles.Width = (int)(this.ClientSize.Width * 0.8);
-        ddSubtitles.DisplayMember = "Title";
-        ddSubtitles.Left = (this.ClientSize.Width - ddSubtitles.Width)/2;
-        ddSubtitles.Top = panel.Height + 10;
+        _cboSubtitles = new ComboBox();
+        Controls.Add(_cboSubtitles);
+        _cboSubtitles.Width = (int)(ClientSize.Width * 0.8);
+        _cboSubtitles.DisplayMember = "Title";
+        _cboSubtitles.Left = (ClientSize.Width - _cboSubtitles.Width) / 2;
+        _cboSubtitles.Top = panel.Height + 10;
         
-        btnStartProcess = new Button();
-        btnStartProcess.Text = "Adicionar Legenda";
-        btnStartProcess.AutoSize = true;
-        btnStartProcess.Anchor = AnchorStyles.None;
-        btnStartProcess.Click += (sender, e) => {
-            if (ddSubtitles.SelectedItem is Subtitles subtitles)
+        _btnStartProcess = new Button();
+        _btnStartProcess.Text = "Adicionar Legenda";
+        _btnStartProcess.AutoSize = true;
+        _btnStartProcess.Anchor = AnchorStyles.None;
+        _btnStartProcess.Click += (sender, e) => {
+            if (_cboSubtitles.SelectedItem is Subtitles subtitles)
             {
-                EmbedySubtitle(subtitles,txtVideoPath.Text);
-            }
-            else
-            {
-                Console.WriteLine("not subtitle");
+                EmbedSubtitle(subtitles, _txtVideoPath.Text);
             }
         };
-        this.Controls.Add(btnStartProcess);
+        Controls.Add(_btnStartProcess);
 
-        btnStartProcess.Left = (this.ClientSize.Width - btnStartProcess.Width)/2;
-        btnStartProcess.Top = this.ClientSize.Height - btnStartProcess.Height - 1;
+        _btnStartProcess.Left = (ClientSize.Width - _btnStartProcess.Width) / 2;
+        _btnStartProcess.Top = ClientSize.Height - _btnStartProcess.Height - 1;
 
-        progressBar = new ProgressBar();
-        progressBar.Width = (int)(this.ClientSize.Width * 0.8);
-        progressBar.Left = (this.ClientSize.Width - progressBar.Width) / 2;
-        progressBar.Top = ddSubtitles.Top + ddSubtitles.Height + 10;
-        this.Controls.Add(progressBar);
+        _progressBar = new ProgressBar();
+        _progressBar.Width = (int)(ClientSize.Width * 0.8);
+        _progressBar.Left = (ClientSize.Width - _progressBar.Width) / 2;
+        _progressBar.Top = _cboSubtitles.Top + _cboSubtitles.Height + 10;
+        Controls.Add(_progressBar);
     }
 
-    private void SelectFile(object sender, EventArgs e){
+    private void OnSelectFile(object sender, EventArgs e)
+    {
         OpenFileDialog openFileDialog = new OpenFileDialog();
         openFileDialog.Filter = "Video (*.mkv)|*.mkv";
 
-        if(openFileDialog.ShowDialog() == DialogResult.OK){
+        if(openFileDialog.ShowDialog() == DialogResult.OK)
+        {
             string filePath = openFileDialog.FileName;
-
-            txtVideoPath.Text = filePath;
+            _txtVideoPath.Text = filePath;
         }
 
-        if(!string.IsNullOrEmpty(txtVideoPath.Text)) {
-            // Function Add Subtitles List to ddSubittles.\
-            ListSubtitles(GetSubtitles(txtVideoPath.Text));
-            
+        if(!string.IsNullOrEmpty(_txtVideoPath.Text))
+        {
+            LoadSubtitlesList(GetSubtitles(_txtVideoPath.Text));
         }
     }
 
-    private async void EmbedySubtitle(Subtitles sub, string filePath)
+    private async void EmbedSubtitle(Subtitles subtitle, string filePath)
     {
-        if (sub != null)
+        if (subtitle != null)
         {
     
             await Task.Run(() =>
@@ -115,10 +104,10 @@ public class MainForm : Form {
                 cmd.StartInfo.ArgumentList.Add(filePath);
                 cmd.StartInfo.ArgumentList.Add("-vf");
     
-                Console.WriteLine(sub.Id);
+                Console.WriteLine(subtitle.Id);
                 // Escapar o caminho do arquivo para o filtro subtitles
                 string escapedFilePath = filePath.Replace(@"\", @"\\").Replace(":", @"\:");
-                cmd.StartInfo.ArgumentList.Add($"subtitles='{escapedFilePath}':si={sub.Id},eq=saturation=0.8");
+                cmd.StartInfo.ArgumentList.Add($"subtitles='{escapedFilePath}':si={subtitle.Id},eq=saturation=0.8");
     
                 cmd.StartInfo.ArgumentList.Add("-c:v");
                 cmd.StartInfo.ArgumentList.Add("hevc_amf");
@@ -164,7 +153,7 @@ public class MainForm : Form {
                 }
     
                 // Set progress bar to 100% when process completes
-                progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100));
+                _progressBar.Invoke((MethodInvoker)(() => _progressBar.Value = 100));
                 
                 MessageBox.Show("Embedding Done");
                 // Reset all fields after completion
@@ -179,10 +168,10 @@ public class MainForm : Form {
 
     private void ResetFields()
     {
-        txtVideoPath.Text = string.Empty;
-        ddSubtitles.Items.Clear();
-        ddSubtitles.Text = string.Empty;
-        progressBar.Value = 0;
+        _txtVideoPath.Text = string.Empty;
+        _cboSubtitles.Items.Clear();
+        _cboSubtitles.Text = string.Empty;
+        _progressBar.Value = 0;
     }
     
     private void UpdateProgressBar(string data)
@@ -196,12 +185,12 @@ public class MainForm : Form {
             TimeSpan currentTime = TimeSpan.Parse(timeStr);
     
             // Supondo que você tenha a duração total do vídeo
-            TimeSpan totalTime = GetVideoDuration(txtVideoPath.Text);
+            TimeSpan totalTime = GetVideoDuration(_txtVideoPath.Text);
     
             if (totalTime.TotalSeconds > 0)
             {
                 int progress = (int)((currentTime.TotalSeconds / totalTime.TotalSeconds) * 100);
-                progressBar.Invoke((MethodInvoker)(() => progressBar.Value = progress));
+                _progressBar.Invoke((MethodInvoker)(() => _progressBar.Value = progress));
             }
         }
     }
@@ -230,7 +219,8 @@ public class MainForm : Form {
         return TimeSpan.Zero;
     }
 
-    private string GetSubtitles(string filePath){
+    private string GetSubtitles(string filePath)
+    {
         Process cmd = new Process();
 
         Console.WriteLine("GetSubtitles");
@@ -251,7 +241,8 @@ public class MainForm : Form {
         return output;
     }
 
-    private List<Subtitles> ListSubtitles(string output){
+    private List<Subtitles> LoadSubtitlesList(string output)
+    {
         List<Subtitles> subtitles = new List<Subtitles>();
         string[] videoInfo = output.Split('\n');
 
@@ -300,12 +291,12 @@ public class MainForm : Form {
             }
         }
         
-        ddSubtitles.Items.Clear(); // Clear the items before adding new ones
+        _cboSubtitles.Items.Clear(); // Clear the items before adding new ones
         
         foreach (var item in subtitles)
         {
             Console.WriteLine($"Id:{item.Id}, Title:{item.Title}");
-            ddSubtitles.Items.Add(new Subtitles{Id = item.Id, Title = item.Title});
+            _cboSubtitles.Items.Add(new Subtitles{Id = item.Id, Title = item.Title});
         }
         
         return subtitles;
