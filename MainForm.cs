@@ -25,6 +25,21 @@ public class MainForm : Form
         InitializeComponents();
     }
 
+    /// <summary>
+    /// Initializes the components and layout of the main form.
+    /// </summary>
+    /// <remarks>
+    /// This method sets up a TableLayoutPanel with five rows and one column. 
+    /// It adds the following components to the layout:
+    /// <list type="bullet">
+    /// <item><description>A file selection panel in the first row.</description></item>
+    /// <item><description>A subtitle selection panel in the second row.</description></item>
+    /// <item><description>A progress panel in the third row.</description></item>
+    /// <item><description>A status label in the fourth row.</description></item>
+    /// <item><description>An action button in the fifth row.</description></item>
+    /// </list>
+    /// The action button is initially disabled and is set to trigger the <see cref="OnStartProcessClick"/> event handler when clicked.
+    /// </remarks>
     private void InitializeComponents()
     {
         _mainLayout = new TableLayoutPanel
@@ -88,7 +103,7 @@ public class MainForm : Form
             ReadOnly = true,
             PlaceholderText = "Select a video file...",
             Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top,
-            Height = 23  // Standard Windows Forms TextBox height
+            Height = 23  
         };
     
         _btnSelectFile = new Button
@@ -96,10 +111,10 @@ public class MainForm : Form
             Text = "Browse...",
             Dock = DockStyle.Right,
             Width = 100,
-            Height = 23,  // Match TextBox height
+            Height = 23,  
             Padding = new Padding(0),
-            Margin = new Padding(3, 0, 0, 0),  // Add small margin between TextBox and Button
-            AutoSize = false  // Prevent auto-sizing
+            Margin = new Padding(3, 0, 0, 0),  
+            AutoSize = false  
         };
         _btnSelectFile.Click += OnSelectFile;
     
@@ -112,7 +127,7 @@ public class MainForm : Form
     {
         var panel = new Panel 
         { 
-            Height = 65, // Increased height to accommodate both controls
+            Height = 65, 
             Dock = DockStyle.Top,
             Padding = new Padding(0, 10, 0, 0)
         };
@@ -121,21 +136,21 @@ public class MainForm : Form
         {
             Text = "Available Subtitles:",
             Dock = DockStyle.Top,
-            Height = 20, // Explicit height for the label
-            Margin = new Padding(0, 0, 0, 5) // Add margin between label and ComboBox
+            Height = 20,
+            Margin = new Padding(0, 0, 0, 5) 
         };
     
         _cboSubtitles = new ComboBox
         {
-            Dock = DockStyle.Top, // Changed to Top instead of Bottom
+            Dock = DockStyle.Top, 
             DropDownStyle = ComboBoxStyle.DropDownList,
             DisplayMember = "Title",
-            Height = 25 // Explicit height for the ComboBox
+            Height = 25 
         };
         _cboSubtitles.SelectedIndexChanged += OnSubtitleSelectionChanged;
     
-        panel.Controls.Add(_cboSubtitles); // Add ComboBox first
-        panel.Controls.Add(label); // Then add label so it appears above
+        panel.Controls.Add(_cboSubtitles); 
+        panel.Controls.Add(label); 
         return panel;
     }
 
@@ -209,7 +224,7 @@ public class MainForm : Form
                     cmd.StartInfo.ArgumentList.Add("-vf");
         
                     Console.WriteLine(subtitle.Id);
-                    // Escapar o caminho do arquivo para o filtro subtitles
+                    
                     string escapedFilePath = filePath.Replace(@"\", @"\\").Replace(":", @"\:");
                     cmd.StartInfo.ArgumentList.Add($"subtitles='{escapedFilePath}':si={subtitle.Id}");
         
@@ -255,11 +270,11 @@ public class MainForm : Form
                     cmd.BeginOutputReadLine();
                     cmd.BeginErrorReadLine();
         
-                    // Timeout de 10 minutos (600000 milissegundos)
+                    
                     bool exited = cmd.WaitForExit(1200000);
                     if (!exited)
                     {
-                        // Forçar o encerramento do processo se ele ainda estiver em execução
+                        
                         cmd.Kill();
                         Console.WriteLine("Processo ffmpeg forçado a encerrar devido ao timeout.");
 
@@ -280,7 +295,6 @@ public class MainForm : Form
                 }
                 catch (Exception ex)
                 {
-                    // Tratamento de erros
                     this.Invoke((MethodInvoker)(() => 
                     {
                         MessageBox.Show($"Erro durante o processo: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -315,7 +329,7 @@ public class MainForm : Form
     
     private void UpdateProgressBar(string data)
     {
-        // Analisar a saída do ffmpeg para extrair informações de progresso
+        
         Regex regex = new Regex(@"time=(\d+:\d+:\d+.\d+)");
         Match match = regex.Match(data);
         if (match.Success)
@@ -323,7 +337,7 @@ public class MainForm : Form
             string timeStr = match.Groups[1].Value;
             TimeSpan currentTime = TimeSpan.Parse(timeStr);
     
-            // Supondo que você tenha a duração total do vídeo
+            
             TimeSpan totalTime = GetVideoDuration(_txtVideoPath.Text);
     
             if (totalTime.TotalSeconds > 0)
@@ -391,13 +405,13 @@ public class MainForm : Form
             if(legendas.Contains("Subtitle"))
             {
                 
-               // Console.WriteLine($"Primeiro IF:{legendas}");
+              
                 Regex regexSub = new Regex(@"Stream #(\d+:\d+)(\(\w+\))?: Subtitle: (\w+)( \(\w+\))?");
                 if( regexSub.IsMatch(legendas) ) {
                     Match match = regexSub.Match(legendas);
                     if (match.Success)
                     {
-                        //Console.WriteLine($"Segundo if:{legendas}");
+                       
                         string subtitleID = RemoveBeforePunctuation(match.Groups[1].Value, ':');
                         if (int.TryParse(subtitleID, out int id))
                         {
@@ -430,7 +444,7 @@ public class MainForm : Form
             }
         }
         
-        _cboSubtitles.Items.Clear(); // Clear the items before adding new ones
+        _cboSubtitles.Items.Clear();
         
         foreach (var item in subtitles)
         {
